@@ -16,7 +16,7 @@ c.execute('''DROP TABLE roa''')
 
 
 c.execute('''CREATE TABLE defendant (defendant_id integer primary key, Name text, Language text, Mailing_Address text, Race text, Sex text, Height text, DOB text, Weight text, Hair text, Eyes text)''')
-c.execute('''CREATE TABLE court_case (Case_Number text, Attorney text, Firm text, Attorney_Phone text, Judge text, defendant_id integer, foreign key (defendant_id) REFERENCES defendant(defendant_id))''')
+c.execute('''CREATE TABLE court_case (defendant_id integer, Case_Number text, Attorney text, Firm text, Attorney_Phone text, Judge text, foreign key (defendant_id) REFERENCES defendant(defendant_id))''')
 c.execute('''CREATE TABLE charges (charges_id integer primary key, 
 	Case_Number text,
 	Offense_Date text,
@@ -26,7 +26,7 @@ c.execute('''CREATE TABLE charges (charges_id integer primary key,
 	Disposition_Date text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
 c.execute('''CREATE TABLE sentence (sentence_id integer primary key, Case_Number text, Fines text, Jail_Days text, Probation text, Balance_Due text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
 c.execute('''CREATE TABLE bonds (bonds_id integer primary key, Case_Number text, Date_Issued text, Type text, Amount text, Posted_Date text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
-c.execute('''CREATE TABLE roa (roa_id integer primary key, Date_Issued text, Action text, Judge text, Case_Number text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
+c.execute('''CREATE TABLE roa (roa_id integer primary key, Case_Number text, Date_Issued text, Action text, Judge text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
 
 conn.commit()
 
