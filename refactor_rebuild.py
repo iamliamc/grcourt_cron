@@ -6,13 +6,20 @@ from bs4 import BeautifulSoup
 
 
 class Input:
-    def __init__():
-         self.cookies = get_cookie()
+
+    baseurl = 'http://grcourt.org/CourtPayments/loadCase.do?caseSequence='
+
+    def __init__(self):
+         self.cookies = None
+
+    def get_cookie(self):
+        r = requests.get(Input.baseurl + '1')
+        self.cookies = r.cookies
 
     def get_html(index):
         print('On Case #:', count)
         #Request Page
-        r = requests.get('http://grcourt.org/CourtPayments/loadCase.do?caseSequence=' + str(index), cookies=cookies)
+        r = requests.get(Input.baseurl + str(index), cookies=cookies)
         bsoup = BeautifulSoup(r.text)
         #global problems
         #problems = []
@@ -21,28 +28,24 @@ class Input:
         return data_ccsort
 
 
-    def get_cookie():
-        r = requests.get('http://grcourt.org/CourtPayments/loadCase.do?caseSequence=1')
-        cookies = r.cookies
-
-
 
 class Parser:
 
     def __init__():
-        self.html = 
+        self.html = ''
+        self.parsed_dict = {}
 
     #need to call these "Parser" object method inside the main "parse" method by adding
     #Parse.stable_table(arguments)
     def stable_table(regex_return, sec_list):       
-    for item in regex_return:
-        item = item.replace('\xa0', '')
-        item = item.replace('\xc2', '')
-        table_soup = BeautifulSoup(item)
-        for x in table_soup.find_all(class_="medium"):
-            for td_tag in x.find_all("td"):
-                sec_list.append(str(td_tag.get_text(strip=True)))
-        return sec_list
+        for item in regex_return:
+            item = item.replace('\xa0', '')
+            item = item.replace('\xc2', '')
+            table_soup = BeautifulSoup(item)
+            for x in table_soup.find_all(class_="medium"):
+                for td_tag in x.find_all("td"):
+                    sec_list.append(str(td_tag.get_text(strip=True)))
+            return sec_list
 
     def stable_table_address(regex_return, sec_list):       
         for item in regex_return:
@@ -95,7 +98,7 @@ class Parser:
             def_list = []
             regex_defendant = re.compile(r'.*<!-- DEFENDANT -->(.*)<!-- CHARGES -->.*', re.DOTALL)
             sec_defendant = regex_defendant.findall(str(bsoup))
-            section_defendant = stable_table_address(sec_defendant, def_list)
+            section_defendant = self.stable_table_address(sec_defendant, def_list)
             str_def = str(section_defendant[3]).replace('\n', ' ')
             section_defendant[3] = ' '.join(str_def.split())
             sdef_t = (None, section_defendant[0], section_defendant[2], section_defendant[3], section_defendant[4], section_defendant[5], section_defendant[6], section_defendant[7], section_defendant[8], section_defendant[9], section_defendant[10])
@@ -107,8 +110,8 @@ class Parser:
             charge_list = []
             regex_charges = re.compile(r'.*<!-- CHARGES -->(.*)<!-- SENTENCE -->.*', re.DOTALL)
             sec_charges = regex_charges.findall(str(bsoup))
-            section_charges = stable_table(sec_charges, charge_list)
-            section_charges = handle_mult(section_charges, [], 5)
+            section_charges = self.stable_table(sec_charges, charge_list)
+            section_charges = self.handle_mult(section_charges, [], 5)
             print(section_charges, '\n')
             
                 
@@ -117,7 +120,7 @@ class Parser:
             sen_list = []
             regex_sentence = re.compile(r'.*<!-- SENTENCE -->(.*)<!-- BONDS -->.*', re.DOTALL)
             sec_sentence = regex_sentence.findall(str(bsoup))
-            section_sentence = stable_table(sec_sentence, sen_list)
+            section_sentence = self.stable_table(sec_sentence, sen_list)
             count_fields = 0
             for x in section_sentence:
                 x = str(x).replace('\n', ' ')
@@ -130,31 +133,34 @@ class Parser:
             bonds_list = []
             regex_bonds = re.compile(r'.*<!-- BONDS -->(.*)<!-- Register of Actions -->.*', re.DOTALL)
             sec_bonds = regex_bonds.findall(str(bsoup))
-            section_bonds = stable_table(sec_bonds, bonds_list)
+            section_bonds = self.stable_table(sec_bonds, bonds_list)
             count_fields = 0
             for x in section_bonds:
                 x = str(x).replace('\n', ' ')
                 x = ' '.join(x.split())
                 section_bonds[count_fields] = x
                 count_fields += 1
-            section_bonds = handle_mult(section_bonds, [], 4)
-            print(handle_mult(section_bonds, [], 4), '\n')
+            section_bonds = self.handle_mult(section_bonds, [], 4)
+            print(self.handle_mult(section_bonds, [], 4), '\n')
             
             #print "TUPLE ---- ++++++++++++++++ROA+++++++++++++++++++++ ---- TUPLE"
             roa_list = []
             regex_roa = re.compile(r'.*<!-- Register of Actions -->(.*)<!-- Case History -->.*', re.DOTALL)
             sec_roa = regex_roa.findall(str(bsoup))
-            section_roa = stable_table(sec_roa, roa_list)
-            section_roa = handle_mult(section_roa, [], 3)
+            section_roa = self.stable_table(sec_roa, roa_list)
+            section_roa = self.handle_mult(section_roa, [], 3)
             #print handle_mult(section_roa, [], 3), '\n'
 
             print("TUPLE ---- +++++++++++++Case History+++++++++++++++++++++ ---- TUPLE")
             case_list = []
             regex_casehist = re.compile(r'.*<!-- Case History -->(.*)<!-- END Main -->.*', re.DOTALL)
             sec_casehist = regex_casehist.findall(str(bsoup))
-            section_casehist = stable_table(sec_casehist, case_list)
-            section_casehist = handle_mult(section_casehist, [], 4)
+            section_casehist = self.stable_table(sec_casehist, case_list)
+            section_casehist = self.handle_mult(section_casehist, [], 4)
             print(section_casehist, '\n')
+
+            #should I really make and return a dictionary here or are these lists etc OK? probably not...
+            return sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist
 
 
 class Output:
@@ -193,9 +199,8 @@ class Output:
 
         pass
 
-    #somethign needs to handle how i'm getting input 
-    # parsed_dict out to the end section of each insert DB execute sdef_t, sdef_t2 --- how am I touching all of these stored lists
-    def save_case_data(parsed_dict):
+    #it's ugly but should work?
+    def save_case_data(sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist):
         c.execute('INSERT INTO defendant VALUES (?,?,?,?,?,?,?,?,?,?,?)', sdef_t)
         c.execute('INSERT INTO court_case VALUES (?,?,?,?,?,?)', sdef_t2)
         for tpl in section_charges: 
@@ -220,7 +225,9 @@ class Output:
         pass
 
 
-# i = Input()
+i = Input()
+i.get_cookie()
+print(i.cookies)
 # p = Parser()
 # o = Output()
 # for _ in range(5):
