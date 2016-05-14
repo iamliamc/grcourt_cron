@@ -8,21 +8,26 @@ from bs4 import BeautifulSoup
 class Input:
 
     baseurl = 'http://grcourt.org/CourtPayments/loadCase.do?caseSequence='
+    
 
     def __init__(self):
          self.cookies = None
+         self.recordNumber = 1
 
     def get_cookie(self):
         r = requests.get(Input.baseurl + '1')
         self.cookies = r.cookies
 
-    def get_html(index):
-        print('On Case #:', count)
+    def get_html(self, index):
+        print('On Case #:', self.recordNumber)
+
         #Request Page
-        r = requests.get(Input.baseurl + str(index), cookies=cookies)
+        r = requests.get(Input.baseurl + str(index), cookies=self.cookies)
         bsoup = BeautifulSoup(r.text)
-        #global problems
-        #problems = []
+
+        #change record number
+        self.recordNumber += 1
+
         #Storing the first b tag inside body to data_ccsort 
         data_ccsort = bsoup.body.b
         return data_ccsort
@@ -31,10 +36,9 @@ class Input:
 
 class Parser:
 
-    def __init__():
-        self.html = ''
-        self.parsed_dict = {}
-
+    def __init__(self, html):
+        self.html = html
+        
     #need to call these "Parser" object method inside the main "parse" method by adding
     #Parse.stable_table(arguments)
     def stable_table(regex_return, sec_list):       
@@ -69,8 +73,9 @@ class Parser:
 
 # this needs to return something that our Output object's 
 # method "save" can take and distribute to each DB insert c.execute statement
-    def parse(html):
+    def parse(self, html):
         #If statement that sorts out civil cases 
+        data_ccsort = html
         if data_ccsort.string == u'Civil Case View':
             print("Civil Case Continue..." )
             count +=1
@@ -160,16 +165,18 @@ class Parser:
             print(section_casehist, '\n')
 
             #should I really make and return a dictionary here or are these lists etc OK? probably not...
+            print(sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist)
             return sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist
+
 
 
 class Output:
 
-    def __init__():
+    def __init__(self):
         self.initialize_db()
 
     # create tables
-    def initialize_db(filepath='example.db'):
+    def initialize_db(self, filepath='example.db'):
         conn = sqlite3.connect(filepath)
         c = conn.cursor()
 
@@ -225,12 +232,19 @@ class Output:
         pass
 
 
+
+
 i = Input()
-i.get_cookie()
-print(i.cookies)
-# p = Parser()
-# o = Output()
-# for _ in range(5):
-#     html = i.get_html()
-#     data = p.parse(html)
-#     o.save_case_data(data)
+
+while i.recordNumber < 10:
+    i.get_cookie()
+    # print(i.cookies)
+    # print(i.get_html(i.recordNumber))
+    print(i.get_html(i.recordNumber))
+
+    p = Parser(i.get_html(i.recordNumber))
+    print(p)
+    o = Output()
+    o.initialize_db("example.db")
+    o.save_case_data(p)
+
