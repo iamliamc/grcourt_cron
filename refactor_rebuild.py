@@ -30,15 +30,16 @@ class Input:
 
         #Storing the first b tag inside body to data_ccsort 
         data_ccsort = bsoup.body.b
-        return data_ccsort
+        return(data_ccsort, bsoup)
 
 
 
 class Parser:
 
-    def __init__(self, html):
+    def __init__(self, html, bsoup):
         self.html = html
-        
+        self.bsoup = bsoup
+
     #need to call these "Parser" object method inside the main "parse" method by adding
     #Parse.stable_table(arguments)
     def stable_table(regex_return, sec_list):       
@@ -73,9 +74,9 @@ class Parser:
 
 # this needs to return something that our Output object's 
 # method "save" can take and distribute to each DB insert c.execute statement
-    def parse(self, html):
+    def parse(self):
         #If statement that sorts out civil cases 
-        data_ccsort = html
+        data_ccsort = self.html
         if data_ccsort.string == u'Civil Case View':
             print("Civil Case Continue..." )
             count +=1
@@ -94,15 +95,15 @@ class Parser:
         #soup = soup.prettify(formatter=lambda s: s.replace(u'\xa0', ' '))
         #soup = soup.prettify(formatter=lambda s: s.replace(u'\xc2', ''))
         
-            data_medium = bsoup.find_all(class_="medium")
-            data_XLheader = bsoup.find_all(class_="extralarge")
-            data_ccsort = bsoup.body.b
+            data_medium = self.bsoup.find_all(class_="medium")
+            data_XLheader = self.bsoup.find_all(class_="extralarge")
+            data_ccsort = self.bsoup.body.b
             print(data_ccsort.string)
             
             print("+++++++++DEFENDANT+++++++++++++++"       )
             def_list = []
             regex_defendant = re.compile(r'.*<!-- DEFENDANT -->(.*)<!-- CHARGES -->.*', re.DOTALL)
-            sec_defendant = regex_defendant.findall(str(bsoup))
+            sec_defendant = regex_defendant.findall(str(self.bsoup))
             section_defendant = self.stable_table_address(sec_defendant, def_list)
             str_def = str(section_defendant[3]).replace('\n', ' ')
             section_defendant[3] = ' '.join(str_def.split())
@@ -114,7 +115,7 @@ class Parser:
             print("TUPLE ---- **********CHARGES******************** ---- TUPLE")
             charge_list = []
             regex_charges = re.compile(r'.*<!-- CHARGES -->(.*)<!-- SENTENCE -->.*', re.DOTALL)
-            sec_charges = regex_charges.findall(str(bsoup))
+            sec_charges = regex_charges.findall(str(self.bsoup))
             section_charges = self.stable_table(sec_charges, charge_list)
             section_charges = self.handle_mult(section_charges, [], 5)
             print(section_charges, '\n')
@@ -124,7 +125,7 @@ class Parser:
             print("+++++++++++++++++SENTENCE+++++++++++++++")
             sen_list = []
             regex_sentence = re.compile(r'.*<!-- SENTENCE -->(.*)<!-- BONDS -->.*', re.DOTALL)
-            sec_sentence = regex_sentence.findall(str(bsoup))
+            sec_sentence = regex_sentence.findall(str(self.bsoup))
             section_sentence = self.stable_table(sec_sentence, sen_list)
             count_fields = 0
             for x in section_sentence:
@@ -137,7 +138,7 @@ class Parser:
             print("TUPLE ---- +++++++++++++BONDS+++++++++++++++++++++ ---- TUPLE")
             bonds_list = []
             regex_bonds = re.compile(r'.*<!-- BONDS -->(.*)<!-- Register of Actions -->.*', re.DOTALL)
-            sec_bonds = regex_bonds.findall(str(bsoup))
+            sec_bonds = regex_bonds.findall(str(self.bsoup))
             section_bonds = self.stable_table(sec_bonds, bonds_list)
             count_fields = 0
             for x in section_bonds:
@@ -151,7 +152,7 @@ class Parser:
             #print "TUPLE ---- ++++++++++++++++ROA+++++++++++++++++++++ ---- TUPLE"
             roa_list = []
             regex_roa = re.compile(r'.*<!-- Register of Actions -->(.*)<!-- Case History -->.*', re.DOTALL)
-            sec_roa = regex_roa.findall(str(bsoup))
+            sec_roa = regex_roa.findall(str(self.bsoup))
             section_roa = self.stable_table(sec_roa, roa_list)
             section_roa = self.handle_mult(section_roa, [], 3)
             #print handle_mult(section_roa, [], 3), '\n'
@@ -159,14 +160,14 @@ class Parser:
             print("TUPLE ---- +++++++++++++Case History+++++++++++++++++++++ ---- TUPLE")
             case_list = []
             regex_casehist = re.compile(r'.*<!-- Case History -->(.*)<!-- END Main -->.*', re.DOTALL)
-            sec_casehist = regex_casehist.findall(str(bsoup))
+            sec_casehist = regex_casehist.findall(str(self.bsoup))
             section_casehist = self.stable_table(sec_casehist, case_list)
             section_casehist = self.handle_mult(section_casehist, [], 4)
             print(section_casehist, '\n')
 
             #should I really make and return a dictionary here or are these lists etc OK? probably not...
             print(sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist)
-            return sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist
+            return(sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist)
 
 
 
@@ -235,16 +236,15 @@ class Output:
 
 
 i = Input()
+o = Output()
+o.initialize_db("example.db")
 
 while i.recordNumber < 10:
     i.get_cookie()
-    # print(i.cookies)
-    # print(i.get_html(i.recordNumber))
-    print(i.get_html(i.recordNumber))
-
-    p = Parser(i.get_html(i.recordNumber))
-    print(p)
-    o = Output()
-    o.initialize_db("example.db")
-    o.save_case_data(p)
+    print(i.recordNumber)
+    data = i.get_html(i.recordNumber)
+    print(type(data))
+    p = Parser(data[0], data[1])
+    output_tuple = p.parse()
+    o.save_case_data(output[0], output[1], output[2], output[3], output[4], output[5], output[6], output[7])
 
