@@ -176,59 +176,58 @@ class Output:
 
     def __init__(self):
         self.initialize_db()
+        self.c
+        self.conn
 
     # create tables
     def initialize_db(self, filepath='example.db'):
-        conn = sqlite3.connect(filepath)
-        c = conn.cursor()
+        self.conn = sqlite3.connect(filepath)
+        self.c = self.conn.cursor()
 
-        c.execute('''DROP TABLE defendant''')
-        c.execute('''DROP TABLE court_case''')
-        c.execute('''DROP TABLE charges''')
-        c.execute('''DROP TABLE sentence''')
-        c.execute('''DROP TABLE bonds''')
-        c.execute('''DROP TABLE roa''')
+        self.c.execute('''DROP TABLE defendant''')
+        self.c.execute('''DROP TABLE court_case''')
+        self.c.execute('''DROP TABLE charges''')
+        self.c.execute('''DROP TABLE sentence''')
+        self.c.execute('''DROP TABLE bonds''')
+        self.c.execute('''DROP TABLE roa''')
 
 
-        c.execute('''CREATE TABLE defendant (defendant_id integer primary key, Name text, Language text, Mailing_Address text, Race text, Sex text, Height text, DOB text, Weight text, Hair text, Eyes text)''')
-        c.execute('''CREATE TABLE court_case (defendant_id integer, Case_Number text, Attorney text, Firm text, Attorney_Phone text, Judge text, foreign key (defendant_id) REFERENCES defendant(defendant_id))''')
-        c.execute('''CREATE TABLE charges (charges_id integer primary key, 
+        self.c.execute('''CREATE TABLE defendant (defendant_id integer primary key, Name text, Language text, Mailing_Address text, Race text, Sex text, Height text, DOB text, Weight text, Hair text, Eyes text)''')
+        self.c.execute('''CREATE TABLE court_case (defendant_id integer, Case_Number text, Attorney text, Firm text, Attorney_Phone text, Judge text, foreign key (defendant_id) REFERENCES defendant(defendant_id))''')
+        self.c.execute('''CREATE TABLE charges (charges_id integer primary key, 
             Case_Number text,
             Offense_Date text,
             Date_Closed text,
             Offense text,
             Disposition text,
             Disposition_Date text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
-        c.execute('''CREATE TABLE sentence (sentence_id integer primary key, Case_Number text, Fines text, Jail_Days text, Probation text, Balance_Due text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
-        c.execute('''CREATE TABLE bonds (bonds_id integer primary key, Case_Number text, Date_Issued text, Type text, Amount text, Posted_Date text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
-        c.execute('''CREATE TABLE roa (roa_id integer primary key, Case_Number text, Date_Issued text, Action text, Judge text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
+        self.c.execute('''CREATE TABLE sentence (sentence_id integer primary key, Case_Number text, Fines text, Jail_Days text, Probation text, Balance_Due text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
+        self.c.execute('''CREATE TABLE bonds (bonds_id integer primary key, Case_Number text, Date_Issued text, Type text, Amount text, Posted_Date text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
+        self.c.execute('''CREATE TABLE roa (roa_id integer primary key, Case_Number text, Date_Issued text, Action text, Judge text, foreign key (Case_Number) REFERENCES court_case(Case_Number))''')
 
-        conn.commit()
+        self.conn.commit()
 
 
         pass
 
     #it's ugly but should work?
-    def save_case_data(sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist):
-        c.execute('INSERT INTO defendant VALUES (?,?,?,?,?,?,?,?,?,?,?)', sdef_t)
-        c.execute('INSERT INTO court_case VALUES (?,?,?,?,?,?)', sdef_t2)
+    def save_case_data(self, sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist):
+        self.c.execute('INSERT INTO defendant VALUES (?,?,?,?,?,?,?,?,?,?,?)', sdef_t)
+        self.c.execute('INSERT INTO court_case VALUES (?,?,?,?,?,?)', sdef_t2)
         for tpl in section_charges: 
             scha_t = (None, section_defendant[1], tpl[0], tpl[1], tpl[2], tpl[3], tpl[4]) 
             #print(scha_t)
-            c.execute('INSERT INTO charges VALUES (?,?,?,?,?,?,?)', (scha_t))
+            self.c.execute('INSERT INTO charges VALUES (?,?,?,?,?,?,?)', (scha_t))
         ssen_t = (None, section_defendant[1], section_sentence[0], section_sentence[1], section_sentence[2], section_sentence[3])
-        c.execute('INSERT INTO sentence VALUES (?,?,?,?,?,?)', (ssen_t))
+        self.c.execute('INSERT INTO sentence VALUES (?,?,?,?,?,?)', (ssen_t))
         for tpl in section_bonds:
             sbon_t = (None, section_defendant[1], tpl[0], tpl[1], tpl[2], tpl[3])
-            c.execute('INSERT INTO bonds VALUES (?,?,?,?,?,?)', sbon_t)
+            self.c.execute('INSERT INTO bonds VALUES (?,?,?,?,?,?)', sbon_t)
         for tpl in section_roa:
             sroa_t = (None, section_defendant[1], tpl[0], tpl[1], tpl[2])
             print(sroa_t)
-            c.execute('INSERT INTO roa VALUES (?,?,?,?,?)', sroa_t)
-        conn.commit()
-        count += 1
-        
-        print(count)
+            self.c.execute('INSERT INTO roa VALUES (?,?,?,?,?)', sroa_t)
+        self.conn.commit()
         time.sleep(2.5)
         # save all
         pass
@@ -246,5 +245,5 @@ while i.recordNumber < 10:
     print(type(data))
     p = Parser(data[0], data[1])
     output_tuple = p.parse()
-    o.save_case_data(output[0], output[1], output[2], output[3], output[4], output[5], output[6], output[7])
+    o.save_case_data(output_tuple[0], output_tuple[1], output_tuple[2], output_tuple[3], output_tuple[4], output_tuple[5], output_tuple[6], output_tuple[7])
     i.recordNumber += 1
