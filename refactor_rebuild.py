@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import division
-import csv, os, re, urllib3, requests, time, random, string, sys, sqlite3
+import csv, os, re, urllib3, requests, time, random, string, sys, sqlite3, pdb
 from bs4 import BeautifulSoup
 
 
@@ -24,9 +24,6 @@ class Input:
         #Request Page
         r = requests.get(Input.baseurl + str(index), cookies=self.cookies)
         bsoup = BeautifulSoup(r.text)
-
-        #change record number
-        self.recordNumber += 1
 
         #Storing the first b tag inside body to data_ccsort 
         data_ccsort = bsoup.body.b
@@ -104,6 +101,10 @@ class Parser:
             def_list = []
             regex_defendant = re.compile(r'.*<!-- DEFENDANT -->(.*)<!-- CHARGES -->.*', re.DOTALL)
             sec_defendant = regex_defendant.findall(str(self.bsoup))
+
+            #Why does it think i'm passing 3 arguments?
+            pdb.set_trace()
+
             section_defendant = self.stable_table_address(sec_defendant, def_list)
             str_def = str(section_defendant[3]).replace('\n', ' ')
             section_defendant[3] = ' '.join(str_def.split())
@@ -238,13 +239,12 @@ class Output:
 i = Input()
 o = Output()
 o.initialize_db("example.db")
+i.get_cookie()
 
 while i.recordNumber < 10:
-    i.get_cookie()
-    print(i.recordNumber)
     data = i.get_html(i.recordNumber)
     print(type(data))
     p = Parser(data[0], data[1])
     output_tuple = p.parse()
     o.save_case_data(output[0], output[1], output[2], output[3], output[4], output[5], output[6], output[7])
-
+    i.recordNumber += 1
