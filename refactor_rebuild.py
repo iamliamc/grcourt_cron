@@ -39,7 +39,7 @@ class Parser:
 
     #need to call these "Parser" object method inside the main "parse" method by adding
     #Parse.stable_table(arguments)
-    def stable_table(regex_return, sec_list):       
+    def stable_table(self, regex_return, sec_list):       
         for item in regex_return:
             item = item.replace('\xa0', '')
             item = item.replace('\xc2', '')
@@ -49,7 +49,7 @@ class Parser:
                     sec_list.append(str(td_tag.get_text(strip=True)))
             return sec_list
 
-    def stable_table_address(regex_return, sec_list):       
+    def stable_table_address(self, regex_return, sec_list):       
         for item in regex_return:
             item = item.replace('<br/>', ' ')
             table_soup = BeautifulSoup(item)
@@ -58,7 +58,7 @@ class Parser:
                     sec_list.append(str(td_tag.get_text(strip=True)))
             return sec_list         
                     
-    def handle_mult(section_inf, next_list, fields):
+    def handle_mult(self,section_inf, next_list, fields):
         numb = int(len(section_inf)/fields)
         s_index = 0
         e_index = fields
@@ -103,7 +103,7 @@ class Parser:
             sec_defendant = regex_defendant.findall(str(self.bsoup))
 
             #Why does it think i'm passing 3 arguments?
-            pdb.set_trace()
+            # pdb.set_trace()
 
             section_defendant = self.stable_table_address(sec_defendant, def_list)
             str_def = str(section_defendant[3]).replace('\n', ' ')
