@@ -8,10 +8,10 @@ from bs4 import BeautifulSoup
 class Input:
 
     baseurl = 'http://grcourt.org/CourtPayments/loadCase.do?caseSequence='
-    
+    cookies = None
 
     def __init__(self):
-         self.cookies = None
+         self.get_cookie()
          self.recordNumber = 1
 
     def get_cookie(self):
@@ -25,7 +25,7 @@ class Input:
         r = requests.get(Input.baseurl + str(index), cookies=self.cookies)
         bsoup = BeautifulSoup(r.text)
 
-        #Storing the first b tag inside body to data_ccsort 
+        #Storing the first b tag inside body to data_ccsort
         data_ccsort = bsoup.body.b
         return(data_ccsort, bsoup)
 
@@ -39,7 +39,7 @@ class Parser:
 
     #need to call these "Parser" object method inside the main "parse" method by adding
     #Parse.stable_table(arguments)
-    def stable_table(self, regex_return, sec_list):       
+    def stable_table(self, regex_return, sec_list):
         for item in regex_return:
             item = item.replace('\xa0', '')
             item = item.replace('\xc2', '')
@@ -49,15 +49,15 @@ class Parser:
                     sec_list.append(str(td_tag.get_text(strip=True)))
             return sec_list
 
-    def stable_table_address(self, regex_return, sec_list):       
+    def stable_table_address(self, regex_return, sec_list):
         for item in regex_return:
             item = item.replace('<br/>', ' ')
             table_soup = BeautifulSoup(item)
             for x in table_soup.find_all(class_="medium"):
                 for td_tag in x.find_all("td"):
                     sec_list.append(str(td_tag.get_text(strip=True)))
-            return sec_list         
-                    
+            return sec_list
+
     def handle_mult(self,section_inf, next_list, fields):
         numb = int(len(section_inf)/fields)
         s_index = 0
@@ -67,12 +67,12 @@ class Parser:
             next_list.append(tuple(section_inf[s_index:e_index]))
             s_index += fields
             e_index += fields
-        return next_list    
+        return next_list
 
-# this needs to return something that our Output object's 
+# this needs to return something that our Output object's
 # method "save" can take and distribute to each DB insert c.execute statement
     def parse(self):
-        #If statement that sorts out civil cases 
+        #If statement that sorts out civil cases
         data_ccsort = self.html
         if data_ccsort.string == u'Civil Case View':
             print("Civil Case Continue..." )
@@ -86,17 +86,17 @@ class Parser:
             time.sleep(2.5)
         else:
             print("Criminal Case")
-        
+
         #Run Parser Function here
         #Possible Solution for clearing &nbsp
         #soup = soup.prettify(formatter=lambda s: s.replace(u'\xa0', ' '))
         #soup = soup.prettify(formatter=lambda s: s.replace(u'\xc2', ''))
-        
+
             data_medium = self.bsoup.find_all(class_="medium")
             data_XLheader = self.bsoup.find_all(class_="extralarge")
             data_ccsort = self.bsoup.body.b
             print(data_ccsort.string)
-            
+
             print("+++++++++DEFENDANT+++++++++++++++"       )
             def_list = []
             regex_defendant = re.compile(r'.*<!-- DEFENDANT -->(.*)<!-- CHARGES -->.*', re.DOTALL)
@@ -112,7 +112,7 @@ class Parser:
             sdef_t2 = (None, section_defendant[1], section_defendant[11], section_defendant[12], section_defendant[13], section_defendant[14])
             print(section_defendant, '\n')
             section_defendant
-            
+
             print("TUPLE ---- **********CHARGES******************** ---- TUPLE")
             charge_list = []
             regex_charges = re.compile(r'.*<!-- CHARGES -->(.*)<!-- SENTENCE -->.*', re.DOTALL)
@@ -120,9 +120,9 @@ class Parser:
             section_charges = self.stable_table(sec_charges, charge_list)
             section_charges = self.handle_mult(section_charges, [], 5)
             print(section_charges, '\n')
-            
-                
-            
+
+
+
             print("+++++++++++++++++SENTENCE+++++++++++++++")
             sen_list = []
             regex_sentence = re.compile(r'.*<!-- SENTENCE -->(.*)<!-- BONDS -->.*', re.DOTALL)
@@ -135,7 +135,7 @@ class Parser:
                 section_sentence[count_fields] = x
                 count_fields += 1
             print(section_sentence, '\n'    )
-            
+
             print("TUPLE ---- +++++++++++++BONDS+++++++++++++++++++++ ---- TUPLE")
             bonds_list = []
             regex_bonds = re.compile(r'.*<!-- BONDS -->(.*)<!-- Register of Actions -->.*', re.DOTALL)
@@ -149,7 +149,7 @@ class Parser:
                 count_fields += 1
             section_bonds = self.handle_mult(section_bonds, [], 4)
             print(self.handle_mult(section_bonds, [], 4), '\n')
-            
+
             #print "TUPLE ---- ++++++++++++++++ROA+++++++++++++++++++++ ---- TUPLE"
             roa_list = []
             regex_roa = re.compile(r'.*<!-- Register of Actions -->(.*)<!-- Case History -->.*', re.DOTALL)
@@ -194,7 +194,7 @@ class Output:
 
         self.c.execute('''CREATE TABLE defendant (defendant_id integer primary key, Name text, Language text, Mailing_Address text, Race text, Sex text, Height text, DOB text, Weight text, Hair text, Eyes text)''')
         self.c.execute('''CREATE TABLE court_case (defendant_id integer, Case_Number text, Attorney text, Firm text, Attorney_Phone text, Judge text, foreign key (defendant_id) REFERENCES defendant(defendant_id))''')
-        self.c.execute('''CREATE TABLE charges (charges_id integer primary key, 
+        self.c.execute('''CREATE TABLE charges (charges_id integer primary key,
             Case_Number text,
             Offense_Date text,
             Date_Closed text,
@@ -214,8 +214,8 @@ class Output:
     def save_case_data(self, sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist):
         self.c.execute('INSERT INTO defendant VALUES (?,?,?,?,?,?,?,?,?,?,?)', sdef_t)
         self.c.execute('INSERT INTO court_case VALUES (?,?,?,?,?,?)', sdef_t2)
-        for tpl in section_charges: 
-            scha_t = (None, section_defendant[1], tpl[0], tpl[1], tpl[2], tpl[3], tpl[4]) 
+        for tpl in section_charges:
+            scha_t = (None, section_defendant[1], tpl[0], tpl[1], tpl[2], tpl[3], tpl[4])
             #print(scha_t)
             self.c.execute('INSERT INTO charges VALUES (?,?,?,?,?,?,?)', (scha_t))
         ssen_t = (None, section_defendant[1], section_sentence[0], section_sentence[1], section_sentence[2], section_sentence[3])
@@ -233,17 +233,13 @@ class Output:
         pass
 
 
-
-
 i = Input()
 o = Output()
-o.initialize_db("example.db")
-i.get_cookie()
 
 while i.recordNumber < 10:
     data = i.get_html(i.recordNumber)
     print(type(data))
     p = Parser(data[0], data[1])
     output_tuple = p.parse()
-    o.save_case_data(output_tuple[0], output_tuple[1], output_tuple[2], output_tuple[3], output_tuple[4], output_tuple[5], output_tuple[6], output_tuple[7])
+    o.save_case_data(*output_tuple)
     i.recordNumber += 1
