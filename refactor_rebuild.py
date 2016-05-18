@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import division
-import csv, os, re, urllib3, requests, time, random, string, sys, sqlite3, pdb
+import csv, os, re, urllib3, requests, time, random, string, sys, sqlite3, pdb, psycopg2
 from bs4 import BeautifulSoup
 
 
@@ -169,32 +169,33 @@ class Parser:
             #should I really make and return a dictionary here or are these lists etc OK? probably not...
             print(sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist)
             return(sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist)
-
-
+    
 
 class Output:
 
     def __init__(self):
+        self.db_connection()
         self.initialize_db()
-        self.c
-        self.conn
+
+    def db_connection(self, filepath='example.db'):
+        self.conn = sqlite3.connect(filepath)
 
     # create tables
-    def initialize_db(self, filepath='example.db'):
-        self.conn = sqlite3.connect(filepath)
+    def initialize_db(self):
+
         self.c = self.conn.cursor()
 
-        self.c.execute('''DROP TABLE defendant''')
-        self.c.execute('''DROP TABLE court_case''')
-        self.c.execute('''DROP TABLE charges''')
-        self.c.execute('''DROP TABLE sentence''')
-        self.c.execute('''DROP TABLE bonds''')
-        self.c.execute('''DROP TABLE roa''')
+        self.c.execute('''DROP TABLE IF EXISTS defendant CASCADE''')
+        self.c.execute('''DROP TABLE IF EXISTS court_case CASCADE''')
+        self.c.execute('''DROP TABLE IF EXISTS charges CASCADE''')
+        self.c.execute('''DROP TABLE IF EXISTS sentence CASCADE''')
+        self.c.execute('''DROP TABLE IF EXISTS bonds CASCADE''')
+        self.c.execute('''DROP TABLE IF EXISTS roa CASCADE''')
 
 
         self.c.execute('''CREATE TABLE defendant (defendant_id integer primary key, Name text, Language text, Mailing_Address text, Race text, Sex text, Height text, DOB text, Weight text, Hair text, Eyes text)''')
-        self.c.execute('''CREATE TABLE court_case (defendant_id integer, Case_Number text, Attorney text, Firm text, Attorney_Phone text, Judge text, foreign key (defendant_id) REFERENCES defendant(defendant_id))''')
-        self.c.execute('''CREATE TABLE charges (charges_id integer primary key,
+        self.c.execute('''CREATE TABLE court_case (defendant_id integer, Case_Number text UNIQUE, Attorney text, Firm text, Attorney_Phone text, Judge text, foreign key (defendant_id) REFERENCES defendant(defendant_id))''')
+        self.c.execute('''CREATE TABLE charges (charges_id integer primary key, 
             Case_Number text,
             Offense_Date text,
             Date_Closed text,
@@ -212,7 +213,7 @@ class Output:
 
     #it's ugly but should work?
     def save_case_data(self, sdef_t, sdef_t2, section_defendant, section_charges, section_sentence, section_bonds, section_roa, section_casehist):
-        self.c.execute('INSERT INTO defendant VALUES (?,?,?,?,?,?,?,?,?,?,?)', sdef_t)
+        self.c.execute('INSERT INTO defendant VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', sdef_t)
         self.c.execute('INSERT INTO court_case VALUES (?,?,?,?,?,?)', sdef_t2)
         for tpl in section_charges:
             scha_t = (None, section_defendant[1], tpl[0], tpl[1], tpl[2], tpl[3], tpl[4])
@@ -233,8 +234,20 @@ class Output:
         pass
 
 
+#con = psycopg2.connect(dbname='grcourt_cron', user='postgres', host='localhost', password='diggy9713')
+class PostGRES_Output(Output):
+
+    def __init__(self):
+        self.db_connection()
+        self.initialize_db()
+        pass
+
+    def db_connection(self):
+        self.conn = psycopg2.connect(dbname='grcourt_cron', user='postgres', host='localhost', password='diggy9713')
+
+
 i = Input()
-o = Output()
+o = PostGRES_Output()
 
 while i.recordNumber < 10:
     data = i.get_html(i.recordNumber)
